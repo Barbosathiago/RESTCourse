@@ -38,13 +38,13 @@ class Item(Resource):
 
         item = {'name': name, 'price': data['price']}
         try:
-            self.isert(item)
+            self.insert(item)
         except:
             return {'message': 'An error ocurred while inserting the item.'}, 500 # Internal server error
         return item, 201
 
     @classmethod
-    def insert(cls, Item):
+    def insert(cls, item):
         connection = sqlite3.connect('data.db')
         cursor = connection.cursor()
 
@@ -69,14 +69,30 @@ class Item(Resource):
 
         data = Item.parser.parse_args()
 
-        item = next(filter(lambda x: x['name'] == name, Items), None)
+        item = self.find_by_name(name)
+        updated_item = {'name': name, 'price': data['price']}
         if item is None:
-            item = {'name': name, 'price': data['price']}
-            Items.append(item)
-            return item
+            try:
+                self.insert(updated_item)
+            except:
+                return {'message': 'An error ocurred while creating the item.'}, 500
         else:
-            item.update(data)
-            return item
+            try:
+                self.update(updated_item)
+            except:
+                return {'message': 'An error ocurred while updating the item.'}, 500
+        return updated_item
+
+    @classmethod
+    def update(cls, item):
+        connection = sqlite3.connect('data.db')
+        cursor = connection.cursor()
+
+        query = "UPDATE items SET price=?  WHERE name=?"
+        cursor.execute(query, (item['price'], item['name']))
+
+        connection.commit()
+        connection.close()
 
 class ItemList(Resource):
     def get(self):
